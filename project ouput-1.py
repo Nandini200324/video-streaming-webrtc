@@ -25,25 +25,16 @@ st.set_page_config(page_title="Video Chat App")
 logger = logging.getLogger(__name__)
 
 
-#  Video Processing + Recording
+# 🎥 Video Processing
 class OpenCVVideoProcessor(VideoProcessorBase):
     type: Literal["noop", "cartoon", "edges", "rotate"]
 
     def __init__(self):
         self.type = "noop"
 
-        #  Video Writer (Recording)
-        self.out = cv2.VideoWriter(
-            "output.mp4",
-            cv2.VideoWriter_fourcc(*"mp4v"),
-            20.0,
-            (640, 480)
-        )
-
     def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
         img = frame.to_ndarray(format="bgr24")
 
-        #  Filters
         if self.type == "cartoon":
             img_color = cv2.pyrDown(cv2.pyrDown(img))
             for _ in range(6):
@@ -71,22 +62,10 @@ class OpenCVVideoProcessor(VideoProcessorBase):
             M = cv2.getRotationMatrix2D((cols / 2, rows / 2), frame.time * 45, 1)
             img = cv2.warpAffine(img, M, (cols, rows))
 
-        #  Save frame (Recording)
-        try:
-            resized = cv2.resize(img, (640, 480))
-            self.out.write(resized)
-        except Exception as e:
-            logger.error(f"Recording error: {e}")
-
         return av.VideoFrame.from_ndarray(img, format="bgr24")
 
-    #  Release video file properly
-    def __del__(self):
-        if hasattr(self, "out"):
-            self.out.release()
 
-
-#  Mixer (multiple users)
+# 🎥 Mixer (for multiple users)
 def mixer_callback(frames: List[av.VideoFrame]) -> av.VideoFrame:
     buf_w, buf_h = 640, 480
     buffer = np.zeros((buf_h, buf_w, 3), dtype=np.uint8)
@@ -121,9 +100,9 @@ def mixer_callback(frames: List[av.VideoFrame]) -> av.VideoFrame:
     return av.VideoFrame.from_ndarray(buffer, format="bgr24")
 
 
-#  Main App
+# 🚀 Main App
 def main():
-    st.title("📹 Video Chat App with Recording")
+    st.title("📹 Video Chat App")
 
     # Session state
     if "mix_track" not in st.session_state:
@@ -154,10 +133,8 @@ def main():
             ("noop", "cartoon", "edges", "rotate"),
         )
 
-    st.info("📁 Recorded video will be saved as 'output.mp4' in your project folder.")
 
-
-# ▶ Run app
+# Run app
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     main()
